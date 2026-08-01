@@ -1,0 +1,9 @@
+name: f_upper
+on:
+  push:
+    branches: ['Main']
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "WORKFLOW=f_upper FILTER=Main REF=$GITHUB_REF"

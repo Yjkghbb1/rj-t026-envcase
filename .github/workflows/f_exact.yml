@@ -1,0 +1,9 @@
+name: f_exact
+on:
+  push:
+    branches: ['main']
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "WORKFLOW=f_exact FILTER=main REF=$GITHUB_REF"

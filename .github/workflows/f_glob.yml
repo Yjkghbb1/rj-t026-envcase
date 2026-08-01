@@ -1,0 +1,9 @@
+name: f_glob
+on:
+  push:
+    branches: ['main*']
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "WORKFLOW=f_glob FILTER=main* REF=$GITHUB_REF"
