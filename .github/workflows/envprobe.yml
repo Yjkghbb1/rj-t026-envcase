@@ -1,0 +1,17 @@
+name: envprobe
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: witness
+        env:
+          CANARY: ${{ secrets.RJ_ENV_CANARY }}
+        run: |
+          echo "ref=$GITHUB_REF"
+          echo "ref_name=$GITHUB_REF_NAME"
+          echo "len=${#CANARY}"
+          printf '%s' "rjT026salt$CANARY" | sha256sum | cut -c1-32 | sed 's/^/witness=/'
